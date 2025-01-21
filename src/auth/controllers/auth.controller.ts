@@ -1,17 +1,19 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body, Res, UsePipes, ValidationPipe, UseGuards, Get, Param } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import { UsersService } from 'src/users/services/users.service';
-import { UserDocument } from 'src/users/schemas/user.schema';
+import { UserDocument } from '../schemas/user.schema';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { AuthGuard } from '../auth.guard';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @ApiOperation({ summary: 'Login' })
+  @ApiResponse({ status: 201, description: 'Login successful.' })
+  @ApiResponse({ status: 400, description: 'Invalid credentials.' })
   async login(
     @Body() body: { email: string; password: string },
     @Res({ passthrough: true }) res: Response,
@@ -23,13 +25,13 @@ export class AuthController {
       return;
     }
 
-    const user: UserDocument = await this.usersService.findByEmail(email);
+    const user: UserDocument = await this.authService.findByEmail(email);
     if (!user) {
       res.status(400).send({ message: 'Invalid credentials' });
       return;
     }
 
-    const isPasswordValid = await this.usersService.validatePassword(
+    const isPasswordValid = await this.authService.validatePassword(
       password,
       user.password,
     );
@@ -56,4 +58,20 @@ export class AuthController {
 
     res.status(200).send({ message: 'Login successful', token });
   }
+
+    @Post('/registration')
+    @ApiOperation({ summary: 'Create a new user' })
+    @ApiResponse({ status: 201, description: 'User has been created successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid data.' })
+    @UsePipes(new ValidationPipe())
+    async createUser(@Body() dto: CreateUserDto, @Res() response: Response) {
+      await this.authService.registerUser(dto);
+      response.send({ message: 'User has been created successfully' });
+    }
+
+    @UseGuards(AuthGuard)
+    @Get('/:id')
+    async getById(@Param('id') id: string) {
+      return await this.authService.findById(id);
+    }
 }

@@ -3,17 +3,22 @@ dotenv.config();
 import * as cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-
-const allowedOrigins = [
-  'http://localhost:8899',
-  'http://10.0.11.165:8899',
-  'http://10.2.0.2:8899',
-  'https://budgetwise-chi.vercel.app',
-];
+import { allowedOrigins } from './constants';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const PORT = process.env.PORT ?? 3000;
   const app = await NestFactory.create(AppModule);
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Auth API')
+    .setDescription('Auth API')
+    .setVersion('1.0')
+    .addTag('auth')
+    .build()
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
 
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
