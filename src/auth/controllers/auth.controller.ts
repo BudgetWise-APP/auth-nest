@@ -5,12 +5,16 @@ import { UserDocument } from '../schemas/user.schema';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { AuthGuard } from '../auth.guard';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ElasticSearchService } from 'src/elasticsearch/elasticsearch.service';
 
-@Controller('auth')
+@Controller('api/v1/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly elasticService: ElasticSearchService
+  ) {}
 
-  @Post('login')
+  @Post('/login')
   @ApiOperation({ summary: 'Login' })
   @ApiResponse({ status: 201, description: 'Login successful.' })
   @ApiResponse({ status: 400, description: 'Invalid credentials.' })
@@ -27,6 +31,7 @@ export class AuthController {
 
     const user: UserDocument = await this.authService.findByEmail(email);
     if (!user) {
+      await this.elasticService.logAuthError(email);
       res.status(400).send({ message: 'Invalid credentials' });
       return;
     }
@@ -56,6 +61,7 @@ export class AuthController {
       path: '/', // Cookie is available on all routes
     });
 
+    await this.elasticService.logUserLogin(user);
     res.status(200).send({ message: 'Login successful', token });
   }
 
@@ -65,7 +71,13 @@ export class AuthController {
     @ApiResponse({ status: 400, description: 'Invalid data.' })
     @UsePipes(new ValidationPipe())
     async createUser(@Body() dto: CreateUserDto, @Res() response: Response) {
+      const user: UserDocument = await this.authService.findByEmail(dto.email);
+      if (user) {
+        response.status(400).send({ message: 'User aleady exists' });
+        return;
+      }
       await this.authService.registerUser(dto);
+      await this.elasticService.logUserCreate(dto);
       response.send({ message: 'User has been created successfully' });
     }
 

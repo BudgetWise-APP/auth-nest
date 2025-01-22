@@ -21,7 +21,6 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   app.use(cookieParser());
-  app.setGlobalPrefix('api/v1');
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {

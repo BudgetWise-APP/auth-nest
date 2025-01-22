@@ -7,9 +7,11 @@ import { AuthController } from './controllers/auth.controller';
 import { AuthGuard } from './auth.guard';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
+import { ElasticModule } from 'src/elasticsearch/elasticsearch.module';
 
 @Module({
   imports: [
+    ElasticModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     PassportModule,
     JwtModule.register({
