@@ -8,9 +8,8 @@ export class ElasticSearchService {
 
   async logUserCreate(user: CreateUserDto) {
    try {
-    console.log('user', user)
     await this.elasticsearchService.index({
-        index: "user-logs",
+        index: "auth-logs",
         body: {
             event: "USER_CREATED",
             userName: user.name,
@@ -19,24 +18,29 @@ export class ElasticSearchService {
     })
    }
     catch (e) {
-         console.error(`Error logging user creation: ${e.message}`)
+        console.error(`Error logging user creation: ${e.message}`)
     }
   }
 
   async logUserLogin(user: CreateUserDto) {
-    await this.elasticsearchService.index({
-        index: "user-logs",
-        body: {
-            event: "USER_LOGGED_IN",
-            userName: user.name,
-            userEmail: user.email,
-        }
-    })
+    try {
+        await this.elasticsearchService.index({
+            index: "auth-logs",
+            body: {
+                event: "USER_LOGGED_IN",
+                userName: user.name,
+                userEmail: user.email,
+            }
+        })
+    }
+    catch (e) {
+        console.error(`Error logging user login: ${e.message}`)
+    }
   }
 
   async logAuthError(email: string) {
     await this.elasticsearchService.index({
-        index: "user-logs",
+        index: "auth-logs",
         body: {
             event: "AUTH_ERROR",
             userEmail: email,
